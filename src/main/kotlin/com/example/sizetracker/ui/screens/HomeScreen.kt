@@ -16,6 +16,14 @@ import androidx.compose.ui.unit.sp
 import com.example.sizetracker.data.entity.UserProfile
 import com.example.sizetracker.data.entity.WeightEntry
 import com.example.sizetracker.ui.viewmodel.SizeTrackerViewModel
+import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
+import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
+import com.patrykandpatrick.vico.compose.chart.Chart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.compose.m3.style.m3ChartStyle
+import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
+import com.patrykandpatrick.vico.core.entry.entryModelOf
+import com.patrykandpatrick.vico.core.entry.entryOf
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,6 +38,7 @@ fun HomeScreen(
     val userProfile by viewModel.userProfile.collectAsState()
     val latestWeight by viewModel.latestWeightEntry.collectAsState()
     val todayCalories by viewModel.todayTotalCalories.collectAsState()
+    val recentWeightEntries by viewModel.getFilteredWeightEntries(7).collectAsState(initial = emptyList())
 
     val dateFormat = SimpleDateFormat("dd MMMM, yyyy", Locale("ru"))
     val today = dateFormat.format(Date())
@@ -71,7 +80,8 @@ fun HomeScreen(
             userProfile?.let { profile ->
                 WeightCard(
                     currentWeight = latestWeight?.weight ?: profile.currentWeight,
-                    targetWeight = profile.targetWeight
+                    targetWeight = profile.targetWeight,
+                    recentEntries = recentWeightEntries
                 )
             }
 
@@ -122,42 +132,83 @@ fun HomeScreen(
 }
 
 @Composable
-fun WeightCard(currentWeight: Float, targetWeight: Float) {
+fun WeightCard(
+    currentWeight: Float,
+    targetWeight: Float,
+    recentEntries: List<WeightEntry>
+) {
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "Вес",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "%.1f кг".format(currentWeight),
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            val diff = currentWeight - targetWeight
-            val diffText = if (diff > 0) {
-                "Осталось: %.1f кг".format(diff)
-            } else {
-                "Цель достигнута!"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Вес",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "%.1f кг".format(currentWeight),
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val diff = currentWeight - targetWeight
+                    val diffText = if (diff > 0) {
+                        "Осталось: %.1f кг".format(diff)
+                    } else {
+                        "Цель достигнута!"
+                    }
+                    Text(
+                        text = "Цель: %.1f кг".format(targetWeight),
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = diffText,
+                        fontSize = 14.sp,
+                        color = if (diff > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                    )
+                }
+
+                // Mini chart
+                if (recentEntries.size >= 2) {
+                    Box(
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(80.dp)
+                    ) {
+                        MiniWeightChart(entries = recentEntries)
+                    }
+                }
             }
-            Text(
-                text = "Цель: %.1f кг".format(targetWeight),
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = diffText,
-                fontSize = 14.sp,
-                color = if (diff > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
-            )
         }
+    }
+}
+
+@Composable
+fun MiniWeightChart(entries: List<WeightEntry>) {
+    val sortedEntries = entries.sortedBy { it.timestamp }
+    val chartEntries = sortedEntries.mapIndexed { index, entry ->
+        entryOf(index.toFloat(), entry.weight)
+    }
+
+    ProvideChartStyle(m3ChartStyle()) {
+        Chart(
+            chart = lineChart(),
+            model = entryModelOf(chartEntries),
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 

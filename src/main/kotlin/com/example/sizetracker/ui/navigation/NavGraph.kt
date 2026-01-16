@@ -38,16 +38,13 @@ fun NavGraph(
         }
 
         composable(Screen.Home.route) {
-            HomeScreen(
+            MainScreen(
                 viewModel = viewModel,
                 onAddWeightClick = {
                     navController.navigate(Screen.AddWeight.route)
                 },
                 onAddCalorieClick = {
                     navController.navigate(Screen.AddCalorie.route)
-                },
-                onHistoryClick = {
-                    navController.navigate(Screen.History.route)
                 }
             )
         }
@@ -63,15 +60,6 @@ fun NavGraph(
 
         composable(Screen.AddCalorie.route) {
             AddCalorieScreen(
-                viewModel = viewModel,
-                onBackClick = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        composable(Screen.History.route) {
-            HistoryScreen(
                 viewModel = viewModel,
                 onBackClick = {
                     navController.popBackStack()

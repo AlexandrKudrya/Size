@@ -6,6 +6,7 @@ import com.example.sizetracker.data.entity.CalorieEntry
 import com.example.sizetracker.data.entity.UserProfile
 import com.example.sizetracker.data.entity.WeightEntry
 import com.example.sizetracker.data.repository.SizeTrackerRepository
+import com.example.sizetracker.utils.AnalyticsUtils
 import com.example.sizetracker.utils.CalorieCalculator
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -141,6 +142,76 @@ class SizeTrackerViewModel(
     fun getCaloriesForDate(date: String): Flow<Int> {
         return repository.getTotalCaloriesByDate(date)
             .map { it ?: 0 }
+    }
+
+    // Analytics methods
+    fun getFilteredWeightEntries(periodDays: Int?): Flow<List<WeightEntry>> {
+        return allWeightEntries.map { entries ->
+            AnalyticsUtils.filterWeightEntriesByPeriod(entries, periodDays)
+        }
+    }
+
+    fun getFilteredCalorieEntries(periodDays: Int?): Flow<List<CalorieEntry>> {
+        return allCalorieEntries.map { entries ->
+            AnalyticsUtils.filterCalorieEntriesByPeriod(entries, periodDays)
+        }
+    }
+
+    fun getAverageWeight(periodDays: Int?): Flow<Float> {
+        return getFilteredWeightEntries(periodDays).map { entries ->
+            AnalyticsUtils.calculateAverageWeight(entries)
+        }
+    }
+
+    fun getWeeklyWeightChange(): Flow<Float> {
+        return allWeightEntries.map { entries ->
+            AnalyticsUtils.calculateWeeklyChange(entries)
+        }
+    }
+
+    fun getWeightTrend(): Flow<String> {
+        return allWeightEntries.map { entries ->
+            AnalyticsUtils.getWeightTrend(entries)
+        }
+    }
+
+    fun getAverageCalories(periodDays: Int?): Flow<Int> {
+        return getFilteredCalorieEntries(periodDays).map { entries ->
+            AnalyticsUtils.calculateAverageCalories(entries)
+        }
+    }
+
+    fun getDaysOverCalorieLimit(periodDays: Int?): Flow<Int> {
+        return combine(
+            getFilteredCalorieEntries(periodDays),
+            userProfile
+        ) { entries, profile ->
+            profile?.let {
+                AnalyticsUtils.countDaysOverLimit(entries, it.dailyCalorieLimit)
+            } ?: 0
+        }
+    }
+
+    fun getDailyCalorieTotals(periodDays: Int?): Flow<Map<String, Int>> {
+        return getFilteredCalorieEntries(periodDays).map { entries ->
+            AnalyticsUtils.getDailyCalorieTotals(entries)
+        }
+    }
+
+    fun getEstimatedDaysToGoal(): Flow<Int?> {
+        return combine(
+            allWeightEntries,
+            latestWeightEntry,
+            userProfile
+        ) { entries, latest, profile ->
+            if (latest != null && profile != null) {
+                AnalyticsUtils.estimateDaysToGoal(
+                    entries,
+                    latest.weight,
+                    profile.targetWeight
+                )
+            } else null
+        }
     }
 
     private fun getTodayDate(): String {
