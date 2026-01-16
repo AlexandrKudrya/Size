@@ -24,6 +24,7 @@ import com.patrykandpatrick.vico.compose.m3.style.m3ChartStyle
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
+import com.example.sizetracker.ui.dialogs.AddSleepDialog
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,6 +42,8 @@ fun HomeScreen(
     val todayWater by viewModel.todayTotalWater.collectAsState()
     val todaySleep by viewModel.todaySleepEntry.collectAsState()
     val recentWeightEntries by viewModel.getFilteredWeightEntries(7).collectAsState(initial = emptyList())
+
+    var showSleepDialog by remember { mutableStateOf(false) }
 
     val dateFormat = SimpleDateFormat("dd MMMM, yyyy", Locale("ru"))
     val today = dateFormat.format(Date())
@@ -113,7 +116,7 @@ fun HomeScreen(
 
                 SleepCard(
                     sleepEntry = todaySleep,
-                    onAddSleep = { /* Will add dialog later */ },
+                    onAddSleep = { showSleepDialog = true },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -151,6 +154,17 @@ fun HomeScreen(
                 Text("Добавить калории", fontSize = 16.sp)
             }
         }
+    }
+
+    // Sleep Dialog
+    if (showSleepDialog) {
+        AddSleepDialog(
+            onDismiss = { showSleepDialog = false },
+            onConfirm = { hours, quality ->
+                viewModel.addSleepEntry(hours, quality)
+                showSleepDialog = false
+            }
+        )
     }
 }
 
