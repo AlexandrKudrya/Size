@@ -48,19 +48,30 @@ jobs:
     - name: Build Debug APK
       run: ./gradlew assembleDebug
 
+    - name: Rename Debug APK
+      run: |
+        mv build/outputs/apk/debug/app-debug.apk build/outputs/apk/debug/SizeTracker-debug-${{ github.sha }}.apk || true
+
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
-        path: build/outputs/apk/debug/*.apk
+        name: SizeTracker-debug-apk
+        path: build/outputs/apk/debug/SizeTracker-*.apk
+        compression-level: 0
 
     - name: Build Release APK
       run: ./gradlew assembleRelease
       continue-on-error: true
 
+    - name: Rename Release APK
+      if: success()
+      run: |
+        mv build/outputs/apk/release/app-release-unsigned.apk build/outputs/apk/release/SizeTracker-release-${{ github.sha }}.apk || true
+
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: app-release
-        path: build/outputs/apk/release/*.apk
+        name: SizeTracker-release-apk
+        path: build/outputs/apk/release/SizeTracker-*.apk
+        compression-level: 0

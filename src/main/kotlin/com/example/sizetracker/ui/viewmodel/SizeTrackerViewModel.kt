@@ -3,7 +3,9 @@ package com.example.sizetracker.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sizetracker.data.entity.CalorieEntry
+import com.example.sizetracker.data.entity.SleepEntry
 import com.example.sizetracker.data.entity.UserProfile
+import com.example.sizetracker.data.entity.WaterEntry
 import com.example.sizetracker.data.entity.WeightEntry
 import com.example.sizetracker.data.repository.SizeTrackerRepository
 import com.example.sizetracker.utils.AnalyticsUtils
@@ -48,6 +50,30 @@ class SizeTrackerViewModel(
 
     // All Calorie Entries
     val allCalorieEntries: StateFlow<List<CalorieEntry>> = repository.getAllCalorieEntries()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Today's water entries
+    val todayWaterEntries: StateFlow<List<WaterEntry>> =
+        repository.getWaterEntriesByDate(getTodayDate())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Today's total water
+    val todayTotalWater: StateFlow<Int> =
+        repository.getTotalWaterByDate(getTodayDate())
+            .map { it ?: 0 }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // All Water Entries
+    val allWaterEntries: StateFlow<List<WaterEntry>> = repository.getAllWaterEntries()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Today's sleep entry
+    val todaySleepEntry: StateFlow<SleepEntry?> =
+        repository.getSleepEntryByDate(getTodayDate())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // All Sleep Entries
+    val allSleepEntries: StateFlow<List<SleepEntry>> = repository.getAllSleepEntries()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Check if onboarding is completed
@@ -142,6 +168,61 @@ class SizeTrackerViewModel(
     fun getCaloriesForDate(date: String): Flow<Int> {
         return repository.getTotalCaloriesByDate(date)
             .map { it ?: 0 }
+    }
+
+    // Add water entry
+    fun addWaterEntry(milliliters: Int, date: String = getTodayDate()) {
+        viewModelScope.launch {
+            val entry = WaterEntry(
+                milliliters = milliliters,
+                date = date
+            )
+            repository.insertWaterEntry(entry)
+        }
+    }
+
+    // Delete water entry
+    fun deleteWaterEntry(waterEntry: WaterEntry) {
+        viewModelScope.launch {
+            repository.deleteWaterEntry(waterEntry)
+        }
+    }
+
+    // Get water for a specific date
+    fun getWaterForDate(date: String): Flow<Int> {
+        return repository.getTotalWaterByDate(date)
+            .map { it ?: 0 }
+    }
+
+    // Add sleep entry
+    fun addSleepEntry(hours: Float, quality: Int, date: String = getTodayDate()) {
+        viewModelScope.launch {
+            val entry = SleepEntry(
+                hours = hours,
+                quality = quality,
+                date = date
+            )
+            repository.insertSleepEntry(entry)
+        }
+    }
+
+    // Delete sleep entry
+    fun deleteSleepEntry(sleepEntry: SleepEntry) {
+        viewModelScope.launch {
+            repository.deleteSleepEntry(sleepEntry)
+        }
+    }
+
+    // Get average sleep hours
+    fun getAverageSleepHours(startDate: String): Flow<Float> {
+        return repository.getAverageSleepHours(startDate)
+            .map { it ?: 0f }
+    }
+
+    // Get average sleep quality
+    fun getAverageSleepQuality(startDate: String): Flow<Float> {
+        return repository.getAverageSleepQuality(startDate)
+            .map { it ?: 0f }
     }
 
     // Analytics methods
