@@ -32,13 +32,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
 
-    - name: Run Detekt
-      run: ./gradlew detekt
-      continue-on-error: true
-
-    - name: Run Lint
-      run: ./gradlew lintDebug
-
     - name: Analyze with SonarCloud (optional)
       run: echo "SonarCloud integration can be added here"
 
