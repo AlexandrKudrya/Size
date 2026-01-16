@@ -38,6 +38,8 @@ fun HomeScreen(
     val userProfile by viewModel.userProfile.collectAsState()
     val latestWeight by viewModel.latestWeightEntry.collectAsState()
     val todayCalories by viewModel.todayTotalCalories.collectAsState()
+    val todayWater by viewModel.todayTotalWater.collectAsState()
+    val todaySleep by viewModel.todaySleepEntry.collectAsState()
     val recentWeightEntries by viewModel.getFilteredWeightEntries(7).collectAsState(initial = emptyList())
 
     val dateFormat = SimpleDateFormat("dd MMMM, yyyy", Locale("ru"))
@@ -92,6 +94,27 @@ fun HomeScreen(
                 CaloriesCard(
                     currentCalories = todayCalories,
                     targetCalories = profile.dailyCalorieLimit
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Water and Sleep Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                WaterCard(
+                    currentWater = todayWater,
+                    targetWater = 2000, // 2 liters default
+                    onAddWater = { viewModel.addWaterEntry(250) }, // Add 250ml
+                    modifier = Modifier.weight(1f)
+                )
+
+                SleepCard(
+                    sleepEntry = todaySleep,
+                    onAddSleep = { /* Will add dialog later */ },
+                    modifier = Modifier.weight(1f)
                 )
             }
 
@@ -245,6 +268,101 @@ fun CaloriesCard(currentCalories: Int, targetCalories: Int) {
                 fontSize = 14.sp,
                 color = if (remaining > 0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
             )
+        }
+    }
+}
+
+@Composable
+fun WaterCard(
+    currentWater: Int,
+    targetWater: Int,
+    onAddWater: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        onClick = onAddWater
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "💧 Вода",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "${currentWater} мл",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "из ${targetWater} мл",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = (currentWater.toFloat() / targetWater.toFloat()).coerceIn(0f, 1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SleepCard(
+    sleepEntry: com.example.sizetracker.data.entity.SleepEntry?,
+    onAddSleep: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        onClick = onAddSleep
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "😴 Сон",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (sleepEntry != null) {
+                Text(
+                    text = "%.1f ч".format(sleepEntry.hours),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(5) { index ->
+                        Text(
+                            text = if (index < sleepEntry.quality) "⭐" else "☆",
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = "Не записано",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Нажмите для записи",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
