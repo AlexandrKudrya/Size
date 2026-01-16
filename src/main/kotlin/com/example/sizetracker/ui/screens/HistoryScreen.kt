@@ -189,11 +189,28 @@ fun CalorieDateGroup(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (entry.foodName.isNotBlank()) {
+                            Text(
+                                text = entry.foodName,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                        }
                         Text(
                             text = "${entry.calories} ккал",
                             fontSize = 14.sp
                         )
+                        if (entry.proteins > 0 || entry.fats > 0 || entry.carbs > 0) {
+                            Text(
+                                text = "Б: %.1fг  Ж: %.1fг  У: %.1fг".format(entry.proteins, entry.fats, entry.carbs),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Text(
                             text = SimpleDateFormat("HH:mm", Locale.getDefault())
                                 .format(Date(entry.timestamp)),

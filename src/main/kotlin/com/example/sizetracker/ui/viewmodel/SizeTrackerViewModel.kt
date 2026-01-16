@@ -109,10 +109,21 @@ class SizeTrackerViewModel(
     }
 
     // Add calorie entry
-    fun addCalorieEntry(calories: Int, date: String = getTodayDate()) {
+    fun addCalorieEntry(
+        foodName: String = "",
+        calories: Int,
+        proteins: Float = 0f,
+        fats: Float = 0f,
+        carbs: Float = 0f,
+        date: String = getTodayDate()
+    ) {
         viewModelScope.launch {
             val entry = CalorieEntry(
+                foodName = foodName,
                 calories = calories,
+                proteins = proteins,
+                fats = fats,
+                carbs = carbs,
                 date = date
             )
             repository.insertCalorieEntry(entry)

@@ -37,7 +37,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Size Tracker") },
+                title = { },
                 actions = {
                     IconButton(onClick = onHistoryClick) {
                         Icon(Icons.Default.History, contentDescription = "История")

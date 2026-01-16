@@ -26,7 +26,11 @@ fun AddCalorieScreen(
     viewModel: SizeTrackerViewModel,
     onBackClick: () -> Unit
 ) {
+    var foodName by remember { mutableStateOf("") }
     var calories by remember { mutableStateOf("") }
+    var proteins by remember { mutableStateOf("") }
+    var fats by remember { mutableStateOf("") }
+    var carbs by remember { mutableStateOf("") }
     val todayEntries by viewModel.todayCalorieEntries.collectAsState()
     val todayTotal by viewModel.todayTotalCalories.collectAsState()
 
@@ -57,11 +61,20 @@ fun AddCalorieScreen(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "Введите калории",
+                        text = "Добавить приём пищи",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
+
+                    OutlinedTextField(
+                        value = foodName,
+                        onValueChange = { foodName = it },
+                        label = { Text("Название еды") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     OutlinedTextField(
                         value = calories,
@@ -71,13 +84,59 @@ fun AddCalorieScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "КБЖУ (необязательно)",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = proteins,
+                            onValueChange = { proteins = it },
+                            label = { Text("Б (г)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = fats,
+                            onValueChange = { fats = it },
+                            label = { Text("Ж (г)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = carbs,
+                            onValueChange = { carbs = it },
+                            label = { Text("У (г)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
                         onClick = {
                             calories.toIntOrNull()?.let { cal ->
-                                viewModel.addCalorieEntry(cal)
+                                viewModel.addCalorieEntry(
+                                    foodName = foodName.ifBlank { "Без названия" },
+                                    calories = cal,
+                                    proteins = proteins.toFloatOrNull() ?: 0f,
+                                    fats = fats.toFloatOrNull() ?: 0f,
+                                    carbs = carbs.toFloatOrNull() ?: 0f
+                                )
+                                foodName = ""
                                 calories = ""
+                                proteins = ""
+                                fats = ""
+                                carbs = ""
                             }
                         },
                         enabled = calories.isNotBlank(),
@@ -157,12 +216,30 @@ fun CalorieEntryItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                if (entry.foodName.isNotBlank()) {
+                    Text(
+                        text = entry.foodName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
                 Text(
                     text = "${entry.calories} ккал",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
+                if (entry.proteins > 0 || entry.fats > 0 || entry.carbs > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Б: %.1fг  Ж: %.1fг  У: %.1fг".format(entry.proteins, entry.fats, entry.carbs),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
                     text = SimpleDateFormat("HH:mm", Locale.getDefault())
                         .format(Date(entry.timestamp)),
