@@ -105,6 +105,7 @@ fun StatisticsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeriodFilterRow(
     selectedPeriod: Period,
