@@ -46,6 +46,8 @@ fun StatisticsScreen(
 
     val weightEntries by viewModel.getFilteredWeightEntries(selectedPeriod.days).collectAsState(initial = emptyList())
     val calorieEntries by viewModel.getFilteredCalorieEntries(selectedPeriod.days).collectAsState(initial = emptyList())
+    val waterEntries by viewModel.allWaterEntries.collectAsState()
+    val sleepEntries by viewModel.allSleepEntries.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val weeklyChange by viewModel.getWeeklyWeightChange().collectAsState(initial = 0f)
     val weightTrend by viewModel.getWeightTrend().collectAsState(initial = "stable")
@@ -99,6 +101,21 @@ fun StatisticsScreen(
             dailyLimit = userProfile?.dailyCalorieLimit ?: 2000,
             avgCalories = avgCalories,
             daysOverLimit = daysOverLimit
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Water Section
+        WaterStatisticsSection(
+            waterEntries = waterEntries,
+            dailyGoal = 2000
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Sleep Section
+        SleepStatisticsSection(
+            sleepEntries = sleepEntries
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -408,6 +425,260 @@ fun CalorieColumnChart(
             ProvideChartStyle(m3ChartStyle()) {
                 Chart(
                     chart = columnChart(),
+                    model = entryModelOf(chartEntries),
+                    startAxis = rememberStartAxis(),
+                    bottomAxis = rememberBottomAxis(),
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun WaterStatisticsSection(
+    waterEntries: List<com.example.sizetracker.data.entity.WaterEntry>,
+    dailyGoal: Int
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "💧 Вода",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        if (waterEntries.isNotEmpty()) {
+            // Group by date and sum
+            val dailyTotals = waterEntries
+                .groupBy { it.date }
+                .mapValues { (_, entries) -> entries.sumOf { it.milliliters } }
+                .toList()
+                .sortedBy { it.first }
+                .takeLast(7)
+
+            // Water Chart
+            WaterColumnChart(dailyTotals = dailyTotals, dailyGoal = dailyGoal)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Statistics
+            val avgWater = if (dailyTotals.isNotEmpty()) {
+                dailyTotals.map { it.second }.average().toInt()
+            } else 0
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Card(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "$avgWater мл",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "в среднем",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (avgWater >= dailyGoal)
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        else
+                            MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = if (avgWater >= dailyGoal) "✓" else "✗",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (avgWater >= dailyGoal) "Цель" else "Меньше нормы",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Нет записей о воде",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SleepStatisticsSection(
+    sleepEntries: List<com.example.sizetracker.data.entity.SleepEntry>
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "😴 Сон",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        if (sleepEntries.isNotEmpty()) {
+            val recentEntries = sleepEntries
+                .sortedBy { it.timestamp }
+                .takeLast(7)
+
+            // Sleep Chart
+            SleepLineChart(entries = recentEntries)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Statistics
+            val avgHours = recentEntries.map { it.hours }.average().toFloat()
+            val avgQuality = recentEntries.map { it.quality }.average().toFloat()
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Card(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "%.1f ч".format(avgHours),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "в среднем",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row {
+                            repeat(5) { index ->
+                                Text(
+                                    text = if (index < avgQuality.toInt()) "⭐" else "☆",
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                        Text(
+                            text = "качество",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Нет записей о сне",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WaterColumnChart(
+    dailyTotals: List<Pair<String, Int>>,
+    dailyGoal: Int
+) {
+    val chartEntries = dailyTotals.mapIndexed { index, (_, water) ->
+        entryOf(index.toFloat(), water.toFloat())
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(250.dp)
+    ) {
+        Box(modifier = Modifier.padding(16.dp)) {
+            ProvideChartStyle(m3ChartStyle()) {
+                Chart(
+                    chart = columnChart(),
+                    model = entryModelOf(chartEntries),
+                    startAxis = rememberStartAxis(),
+                    bottomAxis = rememberBottomAxis(),
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SleepLineChart(
+    entries: List<com.example.sizetracker.data.entity.SleepEntry>
+) {
+    val chartEntries = entries.mapIndexed { index, entry ->
+        entryOf(index.toFloat(), entry.hours)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(250.dp)
+    ) {
+        Box(modifier = Modifier.padding(16.dp)) {
+            ProvideChartStyle(m3ChartStyle()) {
+                Chart(
+                    chart = lineChart(),
                     model = entryModelOf(chartEntries),
                     startAxis = rememberStartAxis(),
                     bottomAxis = rememberBottomAxis(),
