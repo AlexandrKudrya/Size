@@ -82,7 +82,6 @@ fun HistoryScreen(
                 )
                 2 -> WaterHistoryTab(
                     entries = allWaterEntries,
-                    viewModel = viewModel,
                     onDelete = { viewModel.deleteWaterEntry(it) }
                 )
                 3 -> SleepHistoryTab(
