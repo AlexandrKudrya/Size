@@ -29,7 +29,9 @@ class MainActivity : ComponentActivity() {
         val repository = SizeTrackerRepository(
             userProfileDao = database.userProfileDao(),
             weightEntryDao = database.weightEntryDao(),
-            calorieEntryDao = database.calorieEntryDao()
+            calorieEntryDao = database.calorieEntryDao(),
+            waterEntryDao = database.waterEntryDao(),
+            sleepEntryDao = database.sleepEntryDao()
         )
 
         // Initialize ViewModel
