@@ -27,7 +27,6 @@ import com.patrykandpatrick.vico.compose.m3.style.m3ChartStyle
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
-import com.patrykandpatrick.vico.core.scroll.Scroll
 import java.text.SimpleDateFormat
 import java.util.*
 
