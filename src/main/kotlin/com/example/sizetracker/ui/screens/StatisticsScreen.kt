@@ -26,8 +26,16 @@ import com.patrykandpatrick.vico.compose.m3.style.m3ChartStyle
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
+import com.patrykandpatrick.vico.core.axis.AxisPosition
+import com.patrykandpatrick.vico.core.axis.vertical.VerticalAxis
+import com.patrykandpatrick.vico.core.chart.line.LineChart
+import com.patrykandpatrick.vico.core.component.shape.LineComponent
+import com.patrykandpatrick.vico.core.component.shape.Shapes
+import androidx.compose.ui.graphics.toArgb
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.max
+import kotlin.math.min
 
 enum class Period(val label: String, val days: Int?) {
     WEEK("7д", 7),
@@ -374,26 +382,150 @@ fun WeightLineChart(
     if (entries.isEmpty()) return
 
     val sortedEntries = entries.sortedBy { it.timestamp }
-    val chartEntries = sortedEntries.mapIndexed { index, entry ->
+
+    // Calculate Y-axis range: min - 3kg to max + 3kg
+    val weights = sortedEntries.map { it.weight }
+    val minWeight = weights.minOrNull() ?: 0f
+    val maxWeight = weights.maxOrNull() ?: 0f
+    val yMin = max(0f, minWeight - 3f)
+    val yMax = maxWeight + 3f
+
+    // Actual weight data
+    val weightEntries = sortedEntries.mapIndexed { index, entry ->
         entryOf(index.toFloat(), entry.weight)
+    }
+
+    // Goal line (horizontal)
+    val goalEntries = sortedEntries.indices.map { index ->
+        entryOf(index.toFloat(), targetWeight)
+    }
+
+    // Trend line (simple linear regression)
+    val trendEntries = if (sortedEntries.size >= 2) {
+        val xValues = sortedEntries.indices.map { it.toFloat() }
+        val yValues = weights
+        val n = xValues.size
+        val sumX = xValues.sum()
+        val sumY = yValues.sum()
+        val sumXY = xValues.zip(yValues).sumOf { (x, y) -> x * y.toDouble() }
+        val sumX2 = xValues.sumOf { (it * it).toDouble() }
+
+        val slope = ((n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)).toFloat()
+        val intercept = ((sumY - slope * sumX) / n).toFloat()
+
+        sortedEntries.indices.map { index ->
+            entryOf(index.toFloat(), intercept + slope * index)
+        }
+    } else {
+        emptyList()
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(250.dp)
+            .height(300.dp)
     ) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Legend
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LegendItem(color = Color(0xFF2196F3), label = "Вес")
+                if (targetWeight > 0) {
+                    LegendItem(color = Color(0xFF4CAF50), label = "Цель", dashed = true)
+                }
+                if (trendEntries.isNotEmpty()) {
+                    LegendItem(color = Color(0xFFFFC107), label = "Тренд", dashed = true)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             ProvideChartStyle(m3ChartStyle()) {
+                val model = if (targetWeight > 0 && trendEntries.isNotEmpty()) {
+                    entryModelOf(weightEntries, goalEntries, trendEntries)
+                } else if (targetWeight > 0) {
+                    entryModelOf(weightEntries, goalEntries)
+                } else {
+                    entryModelOf(weightEntries)
+                }
+
                 Chart(
-                    chart = lineChart(),
-                    model = entryModelOf(chartEntries),
-                    startAxis = rememberStartAxis(),
+                    chart = lineChart(
+                        lines = buildList {
+                            // Main weight line (solid blue)
+                            add(
+                                LineChart.LineSpec(
+                                    lineColor = Color(0xFF2196F3).toArgb(),
+                                    lineThickness = 3.dp
+                                )
+                            )
+                            // Goal line (dashed green)
+                            if (targetWeight > 0) {
+                                add(
+                                    LineChart.LineSpec(
+                                        lineColor = Color(0xFF4CAF50).toArgb(),
+                                        lineThickness = 2.dp,
+                                        lineBackgroundShader = null
+                                    )
+                                )
+                            }
+                            // Trend line (dashed yellow)
+                            if (trendEntries.isNotEmpty()) {
+                                add(
+                                    LineChart.LineSpec(
+                                        lineColor = Color(0xFFFFC107).toArgb(),
+                                        lineThickness = 2.dp,
+                                        lineBackgroundShader = null
+                                    )
+                                )
+                            }
+                        }
+                    ),
+                    model = model,
+                    startAxis = rememberStartAxis(
+                        valueFormatter = { value, _ -> "%.1f".format(value) }
+                    ),
                     bottomAxis = rememberBottomAxis(),
                     modifier = Modifier.fillMaxSize()
                 )
             }
         }
+    }
+}
+
+@Composable
+fun LegendItem(
+    color: Color,
+    label: String,
+    dashed: Boolean = false
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = if (dashed) 16.dp else 12.dp, height = 3.dp)
+                .then(
+                    if (dashed) {
+                        Modifier
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
+            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRect(color = color)
+            }
+        }
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -419,17 +551,80 @@ fun CalorieColumnChart(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(250.dp)
+            .height(300.dp)
     ) {
-        Box(modifier = Modifier.padding(16.dp)) {
-            ProvideChartStyle(m3ChartStyle()) {
-                Chart(
-                    chart = columnChart(),
-                    model = entryModelOf(chartEntries),
-                    startAxis = rememberStartAxis(),
-                    bottomAxis = rememberBottomAxis(),
-                    modifier = Modifier.fillMaxSize()
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Info text about goal
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Цель: $dailyLimit ккал/день",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Text(
+                    text = "•",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val avgCalories = if (dailyTotals.isNotEmpty()) {
+                    dailyTotals.map { it.second }.average().toInt()
+                } else 0
+                val avgColor = when {
+                    avgCalories > dailyLimit + 200 -> MaterialTheme.colorScheme.error
+                    avgCalories < dailyLimit - 200 -> Color(0xFFFFA726)
+                    else -> MaterialTheme.colorScheme.tertiary
+                }
+                Text(
+                    text = "Среднее: $avgCalories",
+                    fontSize = 12.sp,
+                    color = avgColor,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                ProvideChartStyle(m3ChartStyle()) {
+                    Chart(
+                        chart = columnChart(),
+                        model = entryModelOf(chartEntries),
+                        startAxis = rememberStartAxis(
+                            valueFormatter = { value, _ -> "${value.toInt()}" }
+                        ),
+                        bottomAxis = rememberBottomAxis(),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                // Goal line overlay
+                if (dailyLimit > 0) {
+                    androidx.compose.foundation.Canvas(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 40.dp, end = 16.dp, bottom = 32.dp, top = 16.dp)
+                    ) {
+                        val maxCalories = max(
+                            dailyTotals.maxOfOrNull { it.second }?.toFloat() ?: dailyLimit.toFloat(),
+                            dailyLimit.toFloat() * 1.2f
+                        )
+                        val yPosition = size.height * (1f - dailyLimit / maxCalories)
+
+                        drawLine(
+                            color = Color(0xFF9E9E9E),
+                            start = androidx.compose.ui.geometry.Offset(0f, yPosition),
+                            end = androidx.compose.ui.geometry.Offset(size.width, yPosition),
+                            strokeWidth = 4f,
+                            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                                floatArrayOf(10f, 10f)
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -646,17 +841,78 @@ fun WaterColumnChart(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(250.dp)
+            .height(300.dp)
     ) {
-        Box(modifier = Modifier.padding(16.dp)) {
-            ProvideChartStyle(m3ChartStyle()) {
-                Chart(
-                    chart = columnChart(),
-                    model = entryModelOf(chartEntries),
-                    startAxis = rememberStartAxis(),
-                    bottomAxis = rememberBottomAxis(),
-                    modifier = Modifier.fillMaxSize()
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Info text about goal
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Цель: $dailyGoal мл/день",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Text(
+                    text = "•",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val avgWater = if (dailyTotals.isNotEmpty()) {
+                    dailyTotals.map { it.second }.average().toInt()
+                } else 0
+                val avgColor = when {
+                    avgWater >= dailyGoal -> MaterialTheme.colorScheme.tertiary
+                    avgWater >= dailyGoal * 0.75 -> Color(0xFFFFA726)
+                    else -> MaterialTheme.colorScheme.error
+                }
+                Text(
+                    text = "Среднее: $avgWater мл",
+                    fontSize = 12.sp,
+                    color = avgColor,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                ProvideChartStyle(m3ChartStyle()) {
+                    Chart(
+                        chart = columnChart(),
+                        model = entryModelOf(chartEntries),
+                        startAxis = rememberStartAxis(
+                            valueFormatter = { value, _ -> "${value.toInt()}" }
+                        ),
+                        bottomAxis = rememberBottomAxis(),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                // Goal line overlay
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 40.dp, end = 16.dp, bottom = 32.dp, top = 16.dp)
+                ) {
+                    val maxWater = max(
+                        dailyTotals.maxOfOrNull { it.second }?.toFloat() ?: dailyGoal.toFloat(),
+                        dailyGoal.toFloat() * 1.2f
+                    )
+                    val yPosition = size.height * (1f - dailyGoal / maxWater)
+
+                    drawLine(
+                        color = Color(0xFF9E9E9E),
+                        start = androidx.compose.ui.geometry.Offset(0f, yPosition),
+                        end = androidx.compose.ui.geometry.Offset(size.width, yPosition),
+                        strokeWidth = 4f,
+                        pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                            floatArrayOf(10f, 10f)
+                        )
+                    )
+                }
             }
         }
     }
@@ -666,21 +922,70 @@ fun WaterColumnChart(
 fun SleepLineChart(
     entries: List<com.example.sizetracker.data.entity.SleepEntry>
 ) {
-    val chartEntries = entries.mapIndexed { index, entry ->
+    if (entries.isEmpty()) return
+
+    val sleepGoal = 8f // 8 hours ideal sleep
+
+    // Sleep hours data
+    val sleepEntries = entries.mapIndexed { index, entry ->
         entryOf(index.toFloat(), entry.hours)
+    }
+
+    // Goal line
+    val goalEntries = entries.indices.map { index ->
+        entryOf(index.toFloat(), sleepGoal)
+    }
+
+    // Color representation based on average quality
+    val avgQuality = entries.map { it.quality }.average()
+    val lineColor = when {
+        avgQuality >= 4 -> Color(0xFF66BB6A) // Green - good quality
+        avgQuality >= 3 -> Color(0xFFFFA726) // Orange - medium quality
+        else -> Color(0xFFEF5350) // Red - poor quality
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(250.dp)
+            .height(300.dp)
     ) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Legend
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LegendItem(
+                    color = lineColor,
+                    label = "Сон (${String.format("%.1f★", avgQuality)})"
+                )
+                LegendItem(color = Color(0xFF9E9E9E), label = "Цель (8ч)", dashed = true)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             ProvideChartStyle(m3ChartStyle()) {
                 Chart(
-                    chart = lineChart(),
-                    model = entryModelOf(chartEntries),
-                    startAxis = rememberStartAxis(),
+                    chart = lineChart(
+                        lines = listOf(
+                            // Sleep hours line
+                            LineChart.LineSpec(
+                                lineColor = lineColor.toArgb(),
+                                lineThickness = 3.dp
+                            ),
+                            // Goal line
+                            LineChart.LineSpec(
+                                lineColor = Color(0xFF9E9E9E).toArgb(),
+                                lineThickness = 2.dp,
+                                lineBackgroundShader = null
+                            )
+                        )
+                    ),
+                    model = entryModelOf(sleepEntries, goalEntries),
+                    startAxis = rememberStartAxis(
+                        valueFormatter = { value, _ -> "%.1fч".format(value) }
+                    ),
                     bottomAxis = rememberBottomAxis(),
                     modifier = Modifier.fillMaxSize()
                 )
