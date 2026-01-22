@@ -26,6 +26,8 @@ fun HistoryScreen(
 ) {
     val allWeightEntries by viewModel.allWeightEntries.collectAsState()
     val allCalorieEntries by viewModel.allCalorieEntries.collectAsState()
+    val allWaterEntries by viewModel.allWaterEntries.collectAsState()
+    val allSleepEntries by viewModel.allSleepEntries.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
@@ -56,6 +58,16 @@ fun HistoryScreen(
                     onClick = { selectedTab = 1 },
                     text = { Text("Калории") }
                 )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    text = { Text("💧 Вода") }
+                )
+                Tab(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    text = { Text("😴 Сон") }
+                )
             }
 
             when (selectedTab) {
@@ -67,6 +79,15 @@ fun HistoryScreen(
                     entries = allCalorieEntries,
                     viewModel = viewModel,
                     onDelete = { viewModel.deleteCalorieEntry(it) }
+                )
+                2 -> WaterHistoryTab(
+                    entries = allWaterEntries,
+                    viewModel = viewModel,
+                    onDelete = { viewModel.deleteWaterEntry(it) }
+                )
+                3 -> SleepHistoryTab(
+                    entries = allSleepEntries,
+                    onDelete = { viewModel.deleteSleepEntry(it) }
                 )
             }
         }
