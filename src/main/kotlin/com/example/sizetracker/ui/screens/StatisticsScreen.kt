@@ -458,8 +458,7 @@ fun WeightLineChart(
                             // Main weight line (solid blue)
                             add(
                                 LineChart.LineSpec(
-                                    lineColor = Color(0xFF2196F3).toArgb(),
-                                    lineThickness = 3.dp
+                                    lineColor = Color(0xFF2196F3).toArgb()
                                 )
                             )
                             // Goal line (dashed green)
@@ -467,7 +466,6 @@ fun WeightLineChart(
                                 add(
                                     LineChart.LineSpec(
                                         lineColor = Color(0xFF4CAF50).toArgb(),
-                                        lineThickness = 2.dp,
                                         lineBackgroundShader = null
                                     )
                                 )
@@ -477,7 +475,6 @@ fun WeightLineChart(
                                 add(
                                     LineChart.LineSpec(
                                         lineColor = Color(0xFFFFC107).toArgb(),
-                                        lineThickness = 2.dp,
                                         lineBackgroundShader = null
                                     )
                                 )
@@ -971,13 +968,11 @@ fun SleepLineChart(
                         lines = listOf(
                             // Sleep hours line
                             LineChart.LineSpec(
-                                lineColor = lineColor.toArgb(),
-                                lineThickness = 3.dp
+                                lineColor = lineColor.toArgb()
                             ),
                             // Goal line
                             LineChart.LineSpec(
                                 lineColor = Color(0xFF9E9E9E).toArgb(),
-                                lineThickness = 2.dp,
                                 lineBackgroundShader = null
                             )
                         )
