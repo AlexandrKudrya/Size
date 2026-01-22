@@ -374,8 +374,19 @@ fun WeightLineChart(
     if (entries.isEmpty()) return
 
     val sortedEntries = entries.sortedBy { it.timestamp }
-    val chartEntries = sortedEntries.mapIndexed { index, entry ->
+
+    // Main weight data
+    val weightEntries = sortedEntries.mapIndexed { index, entry ->
         entryOf(index.toFloat(), entry.weight)
+    }
+
+    // Goal line (horizontal line at target weight)
+    val goalEntries = if (targetWeight > 0) {
+        sortedEntries.indices.map { index ->
+            entryOf(index.toFloat(), targetWeight)
+        }
+    } else {
+        emptyList()
     }
 
     Card(
@@ -387,7 +398,11 @@ fun WeightLineChart(
             ProvideChartStyle(m3ChartStyle()) {
                 Chart(
                     chart = lineChart(),
-                    model = entryModelOf(chartEntries),
+                    model = if (goalEntries.isNotEmpty()) {
+                        entryModelOf(weightEntries, goalEntries)
+                    } else {
+                        entryModelOf(weightEntries)
+                    },
                     startAxis = rememberStartAxis(),
                     bottomAxis = rememberBottomAxis(),
                     modifier = Modifier.fillMaxSize()
