@@ -22,10 +22,12 @@ import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.compose.chart.scroll.rememberChartScrollState
 import com.patrykandpatrick.vico.compose.m3.style.m3ChartStyle
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
+import com.patrykandpatrick.vico.core.scroll.Scroll
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -389,6 +391,8 @@ fun WeightLineChart(
         emptyList()
     }
 
+    val scrollState = rememberChartScrollState()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -405,6 +409,8 @@ fun WeightLineChart(
                     },
                     startAxis = rememberStartAxis(),
                     bottomAxis = rememberBottomAxis(),
+                    chartScrollState = scrollState,
+                    isZoomEnabled = true,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -431,6 +437,8 @@ fun CalorieColumnChart(
         entryOf(index.toFloat(), calories.toFloat())
     }
 
+    val scrollState = rememberChartScrollState()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -443,6 +451,8 @@ fun CalorieColumnChart(
                     model = entryModelOf(chartEntries),
                     startAxis = rememberStartAxis(),
                     bottomAxis = rememberBottomAxis(),
+                    chartScrollState = scrollState,
+                    isZoomEnabled = true,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -658,6 +668,8 @@ fun WaterColumnChart(
         entryOf(index.toFloat(), water.toFloat())
     }
 
+    val scrollState = rememberChartScrollState()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -670,6 +682,8 @@ fun WaterColumnChart(
                     model = entryModelOf(chartEntries),
                     startAxis = rememberStartAxis(),
                     bottomAxis = rememberBottomAxis(),
+                    chartScrollState = scrollState,
+                    isZoomEnabled = true,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -685,6 +699,8 @@ fun SleepLineChart(
         entryOf(index.toFloat(), entry.hours)
     }
 
+    val scrollState = rememberChartScrollState()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -697,6 +713,8 @@ fun SleepLineChart(
                     model = entryModelOf(chartEntries),
                     startAxis = rememberStartAxis(),
                     bottomAxis = rememberBottomAxis(),
+                    chartScrollState = scrollState,
+                    isZoomEnabled = true,
                     modifier = Modifier.fillMaxSize()
                 )
             }
